@@ -8,7 +8,7 @@ import (
 	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
-var botToken = "YOUR_BOT_TOKEN"
+var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(botToken)
