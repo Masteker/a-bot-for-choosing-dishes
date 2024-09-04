@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json" // Не забудьте импортировать json
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -58,7 +58,7 @@ func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
 func findRecipe(bot *tgbotapi.BotAPI, chatID int64, query string) {
 	// Здесь будет логика поиска рецептов
 	// Например, если у вас есть API для поиска рецептов
-	response, err := http.Get("https://example.com/api/search?query=" + query)
+	response, err := http.Get("https://gotovim-doma.ru/api/search?query=" + query)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при поиске рецепта. Пожалуйста, попробуйте позже."))
 		return
