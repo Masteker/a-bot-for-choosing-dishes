@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
-	"github.com/Syfaro/telegram-bot-api"
+	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
 var botToken = "ВОТ ТУТ НУЖНО ВСТАВИТЬ КОД ОТ ТЕЛЕГРАМ"
