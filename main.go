@@ -1,70 +1,86 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"os"
+	"encoding/json"
+	"fmt"
+	"net/http"
 
 	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
-var (
-	// глобальная переменная в которой храним токен
-	telegramBotToken string
-)
-
-func init() {
-	// принимаем на входе флаг -telegrambottoken
-	flag.StringVar(&telegramBotToken, "telegrambottoken", "", "Telegram Bot Token")
-	flag.Parse()
-
-	// без него не запускаемся
-	if telegramBotToken == "" {
-		log.Print("-telegrambottoken is required")
-		os.Exit(1)
-	}
-}
+var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
 
 func main() {
-	// используя токен создаем новый инстанс бота
-	bot, err := tgbotapi.NewBotAPI(telegramBotToken)
+	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		log.Panic(err)
+		fmt.Println("Ошибка при создании бота:", err)
+		return
 	}
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	updateConfig := tgbotapi.NewUpdate(0)
+	updateConfig.Timeout = 60
 
-	// u - структура с конфигом для получения апдейтов
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	updates, err := bot.GetUpdatesChan(updateConfig)
 
-	// используя конфиг u создаем канал в который будут прилетать новые сообщения
-	updates, err := bot.GetUpdatesChan(u)
-
-	// в канал updates прилетают структуры типа Update
-	// вычитываем их и обрабатываем
 	for update := range updates {
-		// универсальный ответ на любое сообщение
-		reply := "Не знаю что сказать"
-		if update.Message == nil {
+		if update.Message == nil { // ignore non-Message Updates
 			continue
 		}
 
-		// логируем от кого какое сообщение пришло
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		// свитч на обработку комманд
-		// комманда - сообщение, начинающееся с "/"
-		switch update.Message.Command() {
-		case "start":
-			reply = "Привет. Я телеграм-бот."
-		case "hello":
-			reply = "world"
+		switch update.Message.Text {
+		case "/start":
+			sendStartMessage(bot, update.Message.Chat.ID)
+		default:
+			if update.Message.Chat.IsPrivate() {
+				handleSearch(bot, update.Message.Chat.ID, update.Message.Text)
+			}
 		}
+	}
+}
 
-		// создаем ответное сообщение
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, reply)
-		// отправляем
-		bot.Send(msg)
+func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
+	receptSearchButton := tgbotapi.NewKeyboardButton("Искать рецепт")
+	keyboard := tgbotapi.NewReplyKeyboard(receptSearchButton)
+
+	msg := tgbotapi.NewMessage(chatID, "ВОТ ТУТ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ БОТА ПОСЛЕ КНОПКИ СТАРТ")
+	msg.ReplyMarkup = keyboard
+
+	bot.Send(msg)
+}
+
+func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
+	if searchQuery == "Искать рецепт" {
+		bot.Send(tgbotapi.NewMessage(chatID, "Введи, что ты хочешь приготовить."))
+		return
+	}
+
+	url := fmt.Sprintf("Вhttps://gotovim-doma.ru/wp-json/wp/v2/posts?search=%s", searchQuery)
+	resp, err := http.Get(url)
+	if err != nil {
+		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту"))
+		return
+	}
+	defer resp.Body.Close()
+
+	var results []struct {
+		Title struct {
+			Rendered string `json:"rendered"`
+		} `json:"title"`
+		Link string `json:"link"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при обработке ответа"))
+		return
+	}
+
+	if len(results) == 0 {
+		bot.Send(tgbotapi.NewMessage(chatID, "Я ничего не нашел по вашему запросу"))
+		return
+	}
+
+	for _, result := range results {
+		completeMessage := fmt.Sprintf("%s %s", result.Title.Rendered, result.Link)
+		bot.Send(tgbotapi.NewMessage(chatID, completeMessage))
 	}
 }
