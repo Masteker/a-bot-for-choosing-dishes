@@ -1,19 +1,19 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"encoding/json" // Не забудьте импортировать json
+	"log"
 	"net/http"
 
-	"github.com/Syfaro/telegram-bot-api"
+	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
-var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
+var botToken = "YOUR_BOT_TOKEN"
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		fmt.Println("Ошибка при создании бота:", err)
+		log.Fatal("Ошибка при создании бота:", err)
 		return
 	}
 
@@ -23,7 +23,7 @@ func main() {
 	updates, err := bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
-		if update.Message == nil { // игнорируем не Message обновления
+		if update.Message == nil { // игнорируем не сообщения
 			continue
 		}
 
@@ -32,64 +32,55 @@ func main() {
 			sendStartMessage(bot, update.Message.Chat.ID)
 		default:
 			if update.Message.Chat.IsPrivate() {
-				handleSearch(bot, update.Message.Chat.ID, update.Message.Text)
+				findRecipe(bot, update.Message.Chat.ID, update.Message.Text)
 			}
 		}
 	}
 }
 
 func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
-	buttons := [][]tgbotapi.KeyboardButton{
-		{tgbotapi.NewKeyboardButton("Искать Рецепт")},
+	// Создаем кнопку
+	receptSearchButton := tgbotapi.NewKeyboardButton("Искать рецепт")
+	// Создаем срез с одной кнопкой
+	keyboard := tgbotapi.ReplyKeyboardMarkup{
+		Keyboard: [][]tgbotapi.KeyboardButton{
+			{receptSearchButton}, // Запускаем срез с кнопками
+		},
+		ResizeKeyboard: true,
 	}
 
-	keyboard := tgbotapi.NewReplyKeyboard(buttons...)
-
-	msg := tgbotapi.NewMessage(chatID, "Привет, что ты хочешь приготовить?")
+	msg := tgbotapi.NewMessage(chatID, "Привет! Чем могу помочь?")
 	msg.ReplyMarkup = keyboard
 
 	bot.Send(msg)
 }
 
-func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
-	if searchQuery == "Искать Рецепт" {
-		bot.Send(tgbotapi.NewMessage(chatID, "Введите название рецепта"))
-		return
-	}
-
-	url := fmt.Sprintf("https://gotovim-doma.ru/category/22-supy/wp-json/wp/v2/posts?search=%s", searchQuery)
-	resp, err := http.Get(url)
+func findRecipe(bot *tgbotapi.BotAPI, chatID int64, query string) {
+	// Здесь будет логика поиска рецептов
+	// Например, если у вас есть API для поиска рецептов
+	response, err := http.Get("https://example.com/api/search?query=" + query)
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту: "+err.Error()))
+		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при поиске рецепта. Пожалуйста, попробуйте позже."))
 		return
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	// Проверяем статус ответа
-	if resp.StatusCode != http.StatusOK {
-		bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("Ошибка: не удалось получить данные от сайта (статус: %d)", resp.StatusCode)))
-		return
-	}
-
-	var results []struct {
-		Title struct {
-			Rendered string `json:"rendered"`
-		} `json:"title"`
-		Link string `json:"link"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
-		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при обработке ответа: "+err.Error()))
+	var recipes []string // Предположим, ответ — это массив строк (названий рецептов)
+	if err := json.NewDecoder(response.Body).Decode(&recipes); err != nil {
+		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка декодирования ответа."))
 		return
 	}
 
-	if len(results) == 0 {
-		bot.Send(tgbotapi.NewMessage(chatID, "Я ничего не нашел по вашему запросу"))
+	// Отправляем найденные рецепты (например, первые 3)
+	if len(recipes) == 0 {
+		bot.Send(tgbotapi.NewMessage(chatID, "Рецепты не найдены."))
 		return
 	}
 
-	for _, result := range results {
-		completeMessage := fmt.Sprintf("%s %s", result.Title.Rendered, result.Link)
-		bot.Send(tgbotapi.NewMessage(chatID, completeMessage))
+	messageText := "Найденные рецепты:\n"
+	for _, recipe := range recipes[:3] { // Показываем только первые 3 рецепта
+		messageText += "- " + recipe + "\n"
 	}
+
+	bot.Send(tgbotapi.NewMessage(chatID, messageText))
 }
