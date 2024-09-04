@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
-	tgbotapi "github.com/Syfaro/telegram-bot-api"
+	"github.com/Syfaro/telegram-bot-api"
 )
 
-var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
+var botToken = "ВОТ ТУТ НУЖНО ВСТАВИТЬ КОД ОТ ТЕЛЕГРАМ"
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(botToken)
@@ -39,8 +40,8 @@ func main() {
 }
 
 func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
-	receptSearchButton := tgbotapi.NewKeyboardButton("Искать рецепт")
-	keyboard := tgbotapi.NewReplyKeyboard(receptSearchButton)
+	filmSearchButton := tgbotapi.NewKeyboardButton("ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА")
+	keyboard := tgbotapi.NewReplyKeyboard(filmSearchButton)
 
 	msg := tgbotapi.NewMessage(chatID, "ВОТ ТУТ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ БОТА ПОСЛЕ КНОПКИ СТАРТ")
 	msg.ReplyMarkup = keyboard
@@ -49,12 +50,12 @@ func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
 }
 
 func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
-	if searchQuery == "Искать рецепт" {
-		bot.Send(tgbotapi.NewMessage(chatID, "Введи, что ты хочешь приготовить."))
+	if searchQuery == "ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА" {
+		bot.Send(tgbotapi.NewMessage(chatID, "ВОТ ТУТ ОПИСАНИЕ ЧТО МОЖНО ИСКАТЬ"))
 		return
 	}
 
-	url := fmt.Sprintf("Вhttps://gotovim-doma.ru/wp-json/wp/v2/posts?search=%s", searchQuery)
+	url := fmt.Sprintf("ВОТ ТУТ АДРЕС ВАШЕГО САЙТА/wp-json/wp/v2/posts?search=%s", searchQuery)
 	resp, err := http.Get(url)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту"))
