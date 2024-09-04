@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Syfaro/telegram-bot-api"
+	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
 var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
@@ -39,29 +39,34 @@ func main() {
 }
 
 func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
-	receptSearch := tgbotapi.NewKeyboardButton("ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА")
+	receptSearch := tgbotapi.NewKeyboardButton("Искать Рецепт")
 	keyboard := tgbotapi.NewReplyKeyboard(receptSearch)
 
-	msg := tgbotapi.NewMessage(chatID, "ВОТ ТУТ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ БОТА ПОСЛЕ КНОПКИ СТАРТ")
+	msg := tgbotapi.NewMessage(chatID, "Сейчас все найдем")
 	msg.ReplyMarkup = keyboard
 
 	bot.Send(msg)
 }
 
 func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
-	if searchQuery == "ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА" {
-		bot.Send(tgbotapi.NewMessage(chatID, "ВОТ ТУТ ОПИСАНИЕ ЧТО МОЖНО ИСКАТЬ"))
+	if searchQuery == "Искать Рецепт" {
+		bot.Send(tgbotapi.NewMessage(chatID, "Введите название рецепта"))
 		return
 	}
 
-	// Убедитесь, что вы правильно указали URL вашего сайта
-	url := fmt.Sprintf("http://ваш_адрес_сайта/wp-json/wp/v2/posts?search=%s", searchQuery)
+	url := fmt.Sprintf("https://gotovim-doma.ru/wp-json/wp/v2/posts?search=%s", searchQuery)
 	resp, err := http.Get(url)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту"))
 		return
 	}
 	defer resp.Body.Close()
+
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка: не удалось получить данные от сайта"))
+		return
+	}
 
 	var results []struct {
 		Title struct {
