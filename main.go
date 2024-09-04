@@ -57,7 +57,7 @@ func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
 		return
 	}
 
-	url := fmt.Sprintf("https://gotovim-doma.ru/wp-json/wp/v2/posts?search=%s", searchQuery)
+	url := fmt.Sprintf("https://gotovim-doma.ru/category/22-supy/wp-json/wp/v2/posts?search=%s", searchQuery)
 	resp, err := http.Get(url)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту: "+err.Error()))
