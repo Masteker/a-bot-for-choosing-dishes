@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	tgbotapi "github.com/Syfaro/telegram-bot-api"
+	"github.com/Syfaro/telegram-bot-api"
 )
 
-var botToken = "ВОТ ТУТ НУЖНО ВСТАВИТЬ КОД ОТ ТЕЛЕГРАМ"
+var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(botToken)
@@ -23,7 +23,7 @@ func main() {
 	updates, err := bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
-		if update.Message == nil { // ignore non-Message Updates
+		if update.Message == nil { // игнорируем не Message обновления
 			continue
 		}
 
@@ -39,8 +39,8 @@ func main() {
 }
 
 func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
-	filmSearchButton := tgbotapi.NewKeyboardButton("ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА")
-	keyboard := tgbotapi.NewReplyKeyboard(filmSearchButton)
+	receptSearch := tgbotapi.NewKeyboardButton("ВОТ ТУТ КНОПКА ДЛЯ СТАРТА ПОИСКА")
+	keyboard := tgbotapi.NewReplyKeyboard(receptSearch)
 
 	msg := tgbotapi.NewMessage(chatID, "ВОТ ТУТ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ БОТА ПОСЛЕ КНОПКИ СТАРТ")
 	msg.ReplyMarkup = keyboard
@@ -54,7 +54,8 @@ func handleSearch(bot *tgbotapi.BotAPI, chatID int64, searchQuery string) {
 		return
 	}
 
-	url := fmt.Sprintf("ВОТ ТУТ АДРЕС ВАШЕГО САЙТА/wp-json/wp/v2/posts?search=%s", searchQuery)
+	// Убедитесь, что вы правильно указали URL вашего сайта
+	url := fmt.Sprintf("http://ваш_адрес_сайта/wp-json/wp/v2/posts?search=%s", searchQuery)
 	resp, err := http.Get(url)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при запросе к сайту"))
