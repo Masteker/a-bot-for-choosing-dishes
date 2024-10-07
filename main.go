@@ -1,12 +1,15 @@
 package main
 
 import (
-	"database/sql"
-	"log"
-	"os"
+    "database/sql"
+    "encoding/json"
+    "fmt"
+    "log"
+    "net/http"
+    "os"
 
-	tgbotapi "github.com/Syfaro/telegram-bot-api"
-	_ "github.com/mattn/go-sqlite3" // Импорт SQLite драйвера
+    tgbotapi "github.com/Syfaro/telegram-bot-api"
+    _ "github.com/mattn/go-sqlite3" // Импорт SQLite драйвера
 )
 
 var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
