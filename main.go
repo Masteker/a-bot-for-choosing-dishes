@@ -1,26 +1,22 @@
 package main
 
 import (
-    "database/sql"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
+	"log"
 
-    tgbotapi "github.com/Syfaro/telegram-bot-api"
-    _ "github.com/mattn/go-sqlite3" // Импорт SQLite драйвера
+	tgbotapi "github.com/Syfaro/telegram-bot-api"
 )
 
 var botToken = "7317495569:AAEGfPna-0UwVwMAB2rgs8zLPASqt8jLO7g"
-var dbFile = "recipes.db" // Имя файла базы данных SQLite
+
+// Это карта для хранения рецептов
+var recipes = map[string]string{
+	"Борщ":            "Ингредиенты: свекла, капуста, морковь, картофель, мясо, специи. Приготовление: Нарезать овощи, варить в бульоне до готовности.",
+	"Салат Оливье":    "Ингредиенты: картофель, морковь, зеленый горошек, яйца, колбаса, майонез. Приготовление: Отварить всё, нарезать и смешать.",
+	"Панкейки":        "Ингредиенты: мука, яйца, молоко, сахар, разрыхлитель. Приготовление: Смешать все ингредиенты и жарить на сковороде.",
+	"Паста карбонара": "Ингредиенты: макароны, яйца, сыр Пармезан, бекон, черный перец. Приготовление: Сварить пасту, смешать с другими ингредиентами.",
+}
 
 func main() {
-	// Создаем базу данных, если она не существует
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		initDB()
-	}
-
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		log.Fatal("Ошибка при создании бота:", err)
@@ -48,43 +44,10 @@ func main() {
 	}
 }
 
-func initDB() {
-	db, err := sql.Open("sqlite3", dbFile)
-	if err != nil {
-		log.Fatal("Ошибка при подключении к базе данных:", err)
-		return
-	}
-	defer db.Close()
-
-	// Создаем таблицу рецептов
-	createTableSQL := `CREATE TABLE recipes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
-    );`
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
-		log.Fatal("Ошибка при создании таблицы:", err)
-		return
-	}
-
-	// Можно добавить несколько тестовых данных, если хотите
-	insertSQL := `INSERT INTO recipes (name) VALUES
-        ('Борщ'),
-        ('Салат Оливье'),
-        ('Панкейки'),
-        ('Паста карбонара');`
-	_, err = db.Exec(insertSQL)
-	if err != nil {
-		log.Fatal("Ошибка при вставке данных:", err)
-	}
-}
-
 func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
 	receptSearchButton := tgbotapi.NewKeyboardButton("Искать рецепт")
 	keyboard := tgbotapi.ReplyKeyboardMarkup{
-		Keyboard: [][]tgbotapi.KeyboardButton{
-			{receptSearchButton},
-		},
+		Keyboard:       [][]tgbotapi.KeyboardButton{{receptSearchButton}},
 		ResizeKeyboard: true,
 	}
 
@@ -95,42 +58,29 @@ func sendStartMessage(bot *tgbotapi.BotAPI, chatID int64) {
 }
 
 func findRecipe(bot *tgbotapi.BotAPI, chatID int64, query string) {
-	db, err := sql.Open("sqlite3", dbFile)
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка подключения к базе данных. Пожалуйста, попробуйте позже."))
-		return
-	}
-	defer db.Close()
-
-	// Поиск рецептов
-	querySQL := "SELECT name FROM recipes WHERE name LIKE ? LIMIT 3"
-	rows, err := db.Query(querySQL, "%"+query+"%")
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при выполнении запроса к базе данных. Пожалуйста, попробуйте позже."))
-		return
-	}
-	defer rows.Close()
-
-	var recipes []string
-	for rows.Next() {
-		var recipe string
-		if err := rows.Scan(&recipe); err != nil {
-			bot.Send(tgbotapi.NewMessage(chatID, "Ошибка при получении данных из базы."))
-			return
+	// Поиск рецептов в мапе
+	var foundRecipes []string
+	for name, recipe := range recipes {
+		if contains(name, query) {
+			foundRecipes = append(foundRecipes, name+": "+recipe)
 		}
-		recipes = append(recipes, recipe)
 	}
 
 	// Отправляем найденные рецепты
-	if len(recipes) == 0 {
+	if len(foundRecipes) == 0 {
 		bot.Send(tgbotapi.NewMessage(chatID, "Рецепты не найдены."))
 		return
 	}
 
 	messageText := "Найденные рецепты:\n"
-	for _, recipe := range recipes {
+	for _, recipe := range foundRecipes {
 		messageText += "- " + recipe + "\n"
 	}
 
 	bot.Send(tgbotapi.NewMessage(chatID, messageText))
+}
+
+// Функция для проверки наличия строки в названии блюда
+func contains(name, query string) bool {
+	return len(query) > 0 && (name == query || contains(name, query))
 }
